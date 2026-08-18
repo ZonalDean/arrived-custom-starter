@@ -216,6 +216,7 @@ export interface components {
             id: number;
             name: string;
             is_active: boolean | null;
+            color: string;
         };
         PublicSessionSpeaker: {
             speaker_id: string;

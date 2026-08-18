@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Syne } from "next/font/google";
 
 import type { PublicEventData } from "@/lib/happily/types";
 
@@ -8,6 +9,8 @@ import { ScrollLink } from "./scroll-link";
 import { EventDetails } from "./event-details";
 import { heroImage, text } from "./helpers";
 import { Container } from "./container";
+
+const syne = Syne({ subsets: ["latin"], weight: ["600", "700"] });
 
 type HeroSectionProps = {
   event: PublicEventData["event"];
@@ -53,24 +56,41 @@ export function HeroSection({ event, formActive }: HeroSectionProps) {
       )}
       <Container
         id="hero"
-        className="grid content-end max-w-7xl py-20 min-h-[50vh]"
+        className="grid content-end max-w-7xl py-20 min-h-[50vh] justify-items-center text-center"
       >
         <div className="max-w-3xl">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em]">
+          <p
+            className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] animate-hero-kinematic"
+            style={{ animationDelay: "0ms" }}
+          >
             {text(content.companyName, event.type ?? "Event")}
           </p>
-          <h1 className="text-5xl font-semibold leading-tight sm:text-7xl">
+          <h1
+            className="text-5xl font-semibold leading-tight sm:text-7xl animate-hero-kinematic"
+            style={{ animationDelay: "120ms" }}
+          >
             {text(event.name, event.name)}
           </h1>
-          <EventDetails event={event} />
-          <p>{text(content.heroText)}</p>
+          <div
+            className="animate-hero-kinematic"
+            style={{ animationDelay: "240ms" }}
+          >
+            <EventDetails event={event} />
+          </div>
+          <p
+            className="animate-hero-kinematic"
+            style={{ animationDelay: "360ms" }}
+          >
+            {text(content.heroText)}
+          </p>
           {formActive &&
           event.display_settings.buttonLinks?.heroCTA.display &&
           event.display_settings.buttonLinks.heroCTA.text ? (
             <Button
               asChild
               size="lg"
-              className="mt-4 min-h-12 bg-(--event-accent-bg) px-5 py-3 font-semibold text-(--event-accent-text) hover:bg-(--event-accent-bg)/85"
+              className={`${syne.className} mt-4 min-h-12 animate-hero-cta bg-[#0C277E] px-5 py-3 font-semibold text-white hover:bg-[#0C277E]/85`}
+              style={{ animationDelay: "800ms" }}
             >
               <ScrollLink href="#register">
                 {text(
