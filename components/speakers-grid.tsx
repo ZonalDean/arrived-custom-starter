@@ -9,7 +9,7 @@ type SpeakersGridProps = {
 
 export function SpeakersGrid({ speakers }: SpeakersGridProps) {
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-nowrap items-center justify-center gap-4 overflow-x-auto pb-1">
       {ordered(speakers).map((speaker) => (
         <SpeakerCard key={speaker.id} speaker={speaker} />
       ))}

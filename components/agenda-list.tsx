@@ -4,18 +4,13 @@ import { useMemo } from "react";
 
 import type { PublicEventData } from "@/lib/happily/types";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { FadeInOnScroll } from "./fade-in-on-scroll";
 import { eventTimeRange, formatEventDate } from "./helpers";
 import { Markdown } from "./markdown";
+import { SpeakerCard } from "./speaker-card";
 
 type AgendaListProps = {
   sessions: PublicEventData["sessions"];
@@ -53,43 +48,89 @@ function groupByDay(sessions: Session[], timezone: string | null) {
   return groups;
 }
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
-
 function SpeakersList({ speakers }: { speakers: Speaker[] }) {
   return (
-    <div className="md:col-span-7 md:col-start-4">
-      <div className="grid gap-4 pt-6 md:grid-cols-2">
-        {speakers.map((speaker) => (
-          <div key={speaker.id} className="flex items-center gap-4 text-xs">
-            <Avatar className="size-14 shrink-0">
-              {speaker.image_url && (
-                <AvatarImage src={speaker.image_url} alt={speaker.name} />
-              )}
-              <AvatarFallback>{initials(speaker.name)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold">{speaker.name}</p>
-              <p>
-                {speaker.title && <span>{speaker.title}</span>}
-                {speaker.title && speaker.company && <span>, </span>}
-                {speaker.company && <span>{speaker.company}</span>}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-nowrap items-center gap-3 overflow-x-auto pb-1">
+      {speakers.map((speaker) => (
+        <SpeakerCard key={speaker.id} speaker={speaker} size="sm" />
+      ))}
     </div>
   );
 }
 
-function SessionAccordion({
+function SessionBlock({
+  session,
+  speakerMap,
+  trackMap,
+  event,
+  index,
+}: {
+  session: Session;
+  speakerMap: Map<string, Speaker>;
+  trackMap: Map<number, Track>;
+  event: PublicEventData["event"];
+  index: number;
+}) {
+  const timeLabel = eventTimeRange({
+    ...event,
+    start_date: session.start_time,
+    end_date: session.end_time,
+  });
+
+  const track =
+    session.track_id != null ? (trackMap.get(session.track_id) ?? null) : null;
+
+  const sessionSpeakers = session.speakers
+    .map((ss) => speakerMap.get(ss.speaker_id))
+    .filter((s): s is Speaker => s != null);
+
+  return (
+    <FadeInOnScroll delay={index * 80}>
+      <article className="group flex flex-col gap-4 rounded-none border border-(--event-base-text)/15 bg-(--event-base-bg) p-6 transition-all duration-300 hover:-translate-y-1 hover:border-(--event-secondary-bg)/50 hover:shadow-lg">
+        <p className="font-heading text-sm text-(--event-base-text)/70 md:text-base">
+          {timeLabel}
+        </p>
+
+        <p className="font-heading text-base font-semibold tracking-wider md:text-lg lg:text-xl">
+          {session.name}
+        </p>
+
+        {(track || session.location) && (
+          <div className="flex flex-wrap gap-2">
+            {track && (
+              <Badge
+                variant="secondary"
+                className="cursor-auto rounded-sm font-normal"
+              >
+                {track.name}
+              </Badge>
+            )}
+            {session.location && (
+              <Badge
+                variant="secondary"
+                className="cursor-auto rounded-sm font-normal"
+              >
+                {session.location}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {session.description && (
+          <div className="text-sm leading-relaxed tracking-wide">
+            <Markdown>{session.description}</Markdown>
+          </div>
+        )}
+
+        {sessionSpeakers.length > 0 && (
+          <SpeakersList speakers={sessionSpeakers} />
+        )}
+      </article>
+    </FadeInOnScroll>
+  );
+}
+
+function SessionList({
   sessions,
   speakerMap,
   trackMap,
@@ -101,80 +142,18 @@ function SessionAccordion({
   event: PublicEventData["event"];
 }) {
   return (
-    <Accordion type="single" collapsible className="font-body grid grid-cols-1">
-      {sessions.map((session) => {
-        const timeLabel = eventTimeRange({
-          ...event,
-          start_date: session.start_time,
-          end_date: session.end_time,
-        });
-
-        const track =
-          session.track_id != null
-            ? (trackMap.get(session.track_id) ?? null)
-            : null;
-
-        const sessionSpeakers = session.speakers
-          .map((ss) => speakerMap.get(ss.speaker_id))
-          .filter((s): s is Speaker => s != null);
-
-        const hasContent =
-          session.description ||
-          sessionSpeakers.length > 0 ||
-          track ||
-          session.location;
-
-        return (
-          <AccordionItem value={session.id} key={session.id}>
-            <AccordionTrigger
-              disabled={!hasContent}
-              className="w-full no-underline hover:no-underline md:grid md:grid-cols-10 md:gap-x-10 lg:gap-x-20"
-            >
-              <div className="font-heading hidden text-sm md:col-span-3 md:flex md:flex-col md:text-lg lg:text-xl">
-                <p className="text-left">{timeLabel}</p>
-              </div>
-              <div className="flex w-full flex-col items-start text-left md:col-span-6">
-                <p className="font-heading text-left text-sm md:hidden">
-                  {timeLabel}
-                </p>
-                <p className="text-base font-semibold tracking-wider md:text-lg lg:text-xl">
-                  {session.name}
-                </p>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="md:grid md:grid-cols-10 md:gap-x-10 md:pb-6 lg:gap-x-20">
-              <div className="col-span-3 flex flex-wrap gap-2">
-                {track && (
-                  <Badge
-                    variant="secondary"
-                    className="cursor-auto rounded-sm font-normal"
-                  >
-                    {track.name}
-                  </Badge>
-                )}
-                {session.location && (
-                  <Badge
-                    variant="secondary"
-                    className="cursor-auto rounded-sm font-normal"
-                  >
-                    {session.location}
-                  </Badge>
-                )}
-              </div>
-
-              {session.description && (
-                <div className="col-span-7 col-start-4 pt-3 text-sm leading-relaxed tracking-wide">
-                  <Markdown>{session.description}</Markdown>
-                </div>
-              )}
-              {sessionSpeakers.length > 0 && (
-                <SpeakersList speakers={sessionSpeakers} />
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        );
-      })}
-    </Accordion>
+    <div className="font-body flex flex-col gap-4">
+      {sessions.map((session, index) => (
+        <SessionBlock
+          key={session.id}
+          session={session}
+          speakerMap={speakerMap}
+          trackMap={trackMap}
+          event={event}
+          index={index}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -209,7 +188,7 @@ export function AgendaList({
   if (days.length <= 1) {
     return (
       <div className="pt-5">
-        <SessionAccordion
+        <SessionList
           sessions={sorted}
           speakerMap={speakerMap}
           trackMap={trackMap}
@@ -238,7 +217,7 @@ export function AgendaList({
         </TabsList>
         {days.map(([dayLabel, daySessions]) => (
           <TabsContent key={dayLabel} value={dayLabel}>
-            <SessionAccordion
+            <SessionList
               sessions={daySessions}
               speakerMap={speakerMap}
               trackMap={trackMap}
